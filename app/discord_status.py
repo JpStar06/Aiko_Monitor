@@ -1,6 +1,8 @@
 import os
+
 import aiohttp
-from datetime import datetime, timezone
+
+from app.interface.embeds import offline_embed, online_embed
 
 
 class DiscordStatus:
@@ -9,10 +11,14 @@ class DiscordStatus:
         self.channel_id = os.getenv("STATUS_CHANNEL_ID")
 
         if not self.bot_token:
-            raise RuntimeError("DISCORD_BOT_TOKEN não foi configurado.")
+            raise RuntimeError(
+                "DISCORD_BOT_TOKEN não foi configurado."
+            )
 
         if not self.channel_id:
-            raise RuntimeError("STATUS_CHANNEL_ID não foi configurado.")
+            raise RuntimeError(
+                "STATUS_CHANNEL_ID não foi configurado."
+            )
 
         self.base_url = (
             f"https://discord.com/api/v10/channels/"
@@ -44,60 +50,18 @@ class DiscordStatus:
 
                 if response.status >= 300:
                     body = await response.text()
+
                     raise RuntimeError(
                         f"Discord API retornou HTTP "
                         f"{response.status}: {body}"
                     )
 
-    async def send_offline(self, seconds_without_heartbeat: float):
-        minutes = seconds_without_heartbeat / 60
-
-        embed = {
-            "title": "🔴 AikoBot Offline",
-            "description": (
-                "O monitor detectou que o AikoBot parou de "
-                "enviar heartbeats."
-            ),
-            "color": 0xFF0000,
-            "fields": [
-                {
-                    "name": "⏱️ Tempo sem heartbeat",
-                    "value": f"**{minutes:.1f} minutos**",
-                    "inline": True,
-                },
-                {
-                    "name": "📡 Status",
-                    "value": "🔴 Offline",
-                    "inline": True,
-                },
-            ],
-            "footer": {
-                "text": "AikoMonitor"
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+    async def send_offline(self, seconds_without_heartbeat):
+        embed = offline_embed(seconds_without_heartbeat)
 
         await self._send(embed=embed)
 
     async def send_online(self):
-        embed = {
-            "title": "🟢 AikoBot Online",
-            "description": (
-                "O AikoBot voltou a enviar heartbeats "
-                "normalmente."
-            ),
-            "color": 0x00FF00,
-            "fields": [
-                {
-                    "name": "📡 Status",
-                    "value": "🟢 Online",
-                    "inline": True,
-                },
-            ],
-            "footer": {
-                "text": "AikoMonitor"
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+        embed = online_embed()
 
         await self._send(embed=embed)
