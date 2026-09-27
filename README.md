@@ -2,80 +2,59 @@
 
 Monitor independente do AikoBot.
 
-## Arquitetura
+## Estrutura
 
-AikoBot -> POST /heartbeat -> AikoMonitor -> Discord API
+```text
+AikoMonitor/
+├── main.py                 # entrypoint da Discloud
+├── app/
+│   ├── __init__.py
+│   ├── main.py             # FastAPI
+│   ├── database.py
+│   └── discord_status.py
+├── requirements.txt
+├── discloud.config
+└── .env.example
+```
 
-O AikoMonitor não depende do Gateway do Discord para monitorar o AikoBot.
+## Discloud
 
-## 1. Variáveis de ambiente
+O `discloud.config` usa `TYPE=site` e `MAIN=main.py`.
+O `main.py` inicia Uvicorn em `0.0.0.0:8080` e carrega `app.main:app`.
 
-Configure:
+## Variáveis
 
-- MONITOR_TOKEN
-- DISCORD_BOT_TOKEN
-- STATUS_CHANNEL_ID
-- CHECK_INTERVAL
-- OFFLINE_AFTER
+Configure no ambiente da Discloud:
+
+- `MONITOR_TOKEN`: segredo compartilhado apenas entre AikoBot e AikoMonitor.
+- `DISCORD_BOT_TOKEN`: token do bot Discord que enviará as mensagens.
+- `STATUS_CHANNEL_ID`: ID do canal de status.
+- `CHECK_INTERVAL`: padrão 30 segundos.
+- `OFFLINE_AFTER`: padrão 90 segundos sem heartbeat.
+- `DB_PATH`: padrão `data/monitor.db`.
 
 Não coloque tokens no Git.
 
-## 2. Discord
+## Endpoints
 
-O bot usado em DISCORD_BOT_TOKEN precisa ter permissão para enviar mensagens no canal definido em STATUS_CHANNEL_ID.
+- `GET /` — status básico do serviço.
+- `GET /health` — health check.
+- `POST /heartbeat` — heartbeat autenticado do AikoBot.
 
-## 3. Discloud
+O AikoBot deve enviar:
 
-O projeto usa:
-
-TYPE=site
-MAIN=app/main.py
-ID=aiko-monitor
-
-A aplicação escuta em 0.0.0.0:8080.
-
-A URL final será semelhante a:
-
-https://aiko-monitor.discloud.app
-
-O heartbeat fica em:
-
+```http
 POST /heartbeat
-
-## 4. Teste local
-
-Instale:
-
-pip install -r requirements.txt
-
-Execute:
-
-uvicorn app.main:app --host 0.0.0.0 --port 8080
-
-Teste:
-
-GET http://localhost:8080/health
-
-Heartbeat:
-
-POST http://localhost:8080/heartbeat
-
-Header:
-
 Authorization: Bearer SEU_MONITOR_TOKEN
+```
 
-## 5. Integração com o AikoBot
+## Integração com o AikoBot
 
-No AikoBot, envie um POST para:
+O arquivo `aikobot_integration.py` contém a função de heartbeat. No AikoBot, defina:
 
-https://aiko-monitor.discloud.app/heartbeat
+```env
+MONITOR_URL=https://SEU-ID.discloud.app/heartbeat
+MONITOR_TOKEN=mesmo-segredo-do-AikoMonitor
+```
 
-com:
-
-Authorization: Bearer SEU_MONITOR_TOKEN
-
-O ideal é enviar a cada 30 segundos.
-
-## Observação
-
-A primeira versão usa SQLite para manter o último heartbeat e o histórico básico de eventos. Isso é suficiente para um monitor pequeno e evita depender do banco principal do AikoBot.
+E inicie `heartbeat()` como uma `asyncio.Task` durante o startup do bot.

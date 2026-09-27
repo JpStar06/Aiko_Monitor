@@ -33,16 +33,9 @@ async def init_db():
                     duration_seconds REAL
                 )
             """)
-
-            row = conn.execute(
-                "SELECT id FROM monitor_state WHERE id = 1"
-            ).fetchone()
-
+            row = conn.execute("SELECT id FROM monitor_state WHERE id = 1").fetchone()
             if row is None:
-                conn.execute(
-                    "INSERT INTO monitor_state (id, status, last_heartbeat) VALUES (1, 'unknown', NULL)"
-                )
-
+                conn.execute("INSERT INTO monitor_state (id, status, last_heartbeat) VALUES (1, 'unknown', NULL)")
             conn.commit()
         finally:
             conn.close()
@@ -52,9 +45,7 @@ async def get_state():
     async with _lock:
         conn = _connect()
         try:
-            row = conn.execute(
-                "SELECT status, last_heartbeat FROM monitor_state WHERE id = 1"
-            ).fetchone()
+            row = conn.execute("SELECT status, last_heartbeat FROM monitor_state WHERE id = 1").fetchone()
             return dict(row)
         finally:
             conn.close()
@@ -64,10 +55,7 @@ async def save_heartbeat(timestamp: datetime):
     async with _lock:
         conn = _connect()
         try:
-            conn.execute(
-                "UPDATE monitor_state SET last_heartbeat = ? WHERE id = 1",
-                (timestamp.isoformat(),),
-            )
+            conn.execute("UPDATE monitor_state SET last_heartbeat = ? WHERE id = 1", (timestamp.isoformat(),))
             conn.commit()
         finally:
             conn.close()
@@ -77,10 +65,7 @@ async def set_status(status: str):
     async with _lock:
         conn = _connect()
         try:
-            conn.execute(
-                "UPDATE monitor_state SET status = ? WHERE id = 1",
-                (status,),
-            )
+            conn.execute("UPDATE monitor_state SET status = ? WHERE id = 1", (status,))
             conn.commit()
         finally:
             conn.close()
@@ -91,15 +76,8 @@ async def record_event(event: str, duration_seconds: float | None):
         conn = _connect()
         try:
             conn.execute(
-                """
-                INSERT INTO events (event, created_at, duration_seconds)
-                VALUES (?, ?, ?)
-                """,
-                (
-                    event,
-                    datetime.now().astimezone().isoformat(),
-                    duration_seconds,
-                ),
+                "INSERT INTO events (event, created_at, duration_seconds) VALUES (?, ?, ?)",
+                (event, datetime.now().astimezone().isoformat(), duration_seconds),
             )
             conn.commit()
         finally:
