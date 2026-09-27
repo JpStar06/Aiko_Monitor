@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 import aiohttp
 from fastapi import FastAPI, Header, HTTPException
 
-from app.database import init_db, get_state, save_heartbeat, set_status, record_event
-from app.discord_status import DiscordStatus
+from database import (init_db, get_state, save_heartbeat, set_status, record_event)
+from discord_status import DiscordStatus
 
 logging.basicConfig(
     level=logging.INFO,
